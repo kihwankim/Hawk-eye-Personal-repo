@@ -21,9 +21,9 @@ counter = 0
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--input",
-                help="path to input video", default="./testbird.mp4")
+                help="path to input video", default="./test/testbird.mp4")
 ap.add_argument("-o", "--output",
-                help="path to output video", default="./test_output.avi")
+                help="path to output video", default="./test/test_output.avi")
 ap.add_argument("-y", "--yolo",
                 help="base path to YOLO directory", default="./yolo-obj")
 ap.add_argument("-c", "--confidence", type=float, default=0.4,
@@ -162,7 +162,6 @@ while True:
     dets = np.asarray(dets)
     tracks, tracker_objects_data = tracker.update(dets)
 
-
     boxes = []
     indexIDs = []
     c = []
@@ -200,7 +199,25 @@ while True:
                     counter += 1
 
             # text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
-            text = "{}".format(indexIDs[i])
+
+            # -----------------------
+            try:
+                now_to_object = tracker_objects_data.get(indexIDs[i])  # id 값 넣기
+            except:
+                now_to_object = None
+            if now_to_object is not None:
+                y_datas = [c[1] for c in now_to_object.centroids]
+                direction = np.mean(y_datas) - y  # y값
+                if direction < 0:
+                    direction_result = "in " + str(direction)
+                elif direction > 0:
+                    direction_result = "out " + str(direction)
+                else:
+                    direction_result = "stable " + str(direction)
+            else:
+                direction_result = ""
+            # -----------------------
+            text = "{}: {}".format(indexIDs[i], direction_result)
             cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
             i += 1
 

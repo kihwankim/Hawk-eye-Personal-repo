@@ -29,6 +29,8 @@ import time
 import argparse
 from filterpy.kalman import KalmanFilter
 
+from TrackableObject import TrackableObject
+
 
 @jit
 def iou(bb_test, bb_gt):
@@ -231,17 +233,27 @@ class Sort(object):
         for trk in reversed(self.trackers):
             d = trk.get_state()[0]
             before_data_tracker_obj = None
+            reshaped_data = None
             if ((trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits)):
                 reshaped_data = np.concatenate((d, [trk.id + 1])).reshape(1, -1)  # 새로 생성된 배열 obj가 존재
                 ret.append(reshaped_data)  # +1 as MOT benchmark requires positive
-                before_data_tracker_obj = self.before_tracker_objects.get(reshaped_data[4])  # get data
+                try:
+                    before_data_tracker_obj = self.before_tracker_objects.get(str(int(reshaped_data[0][4])))  # get data
+                except:
+                    before_data_tracker_obj = None
             i -= 1
             # remove dead tracklet
             if (trk.time_since_update > self.max_age):
                 self.trackers.pop(i)
-            elif before_data_tracker_obj is not None:  # nothing or not
-                before_data_tracker_obj.centroids.append((reshaped_data[0], reshaped_data[1]))
-                self.new_tracker_objects[before_data_tracker_obj.object_id] = before_data_tracker_obj
+            elif reshaped_data is not None:
+                if before_data_tracker_obj is not None:  # nothing or not
+                    before_data_tracker_obj.centroids.append((reshaped_data[0][0], reshaped_data[0][1]))
+                    self.new_tracker_objects[before_data_tracker_obj.object_id] = before_data_tracker_obj
+                elif before_data_tracker_obj is None:
+                    self.new_tracker_objects[str(int(reshaped_data[0][4]))] = TrackableObject(reshaped_data[0][4],
+                                                                                              (reshaped_data[0][0],
+                                                                                               reshaped_data[0][1]))
+                    # pass
 
         if (len(ret) > 0):
             self.before_tracker_objects = self.new_tracker_objects
